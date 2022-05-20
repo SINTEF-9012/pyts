@@ -98,6 +98,21 @@ class FitBitDataFrame:
 
 
 def infer(input_data, scaler_filepath, model_filepath, input_columns):
+    """Run inference using a machine learning model.
+
+    Args:
+        input_data (DataFrame): DataFrame containing the input data to use when
+            running inference. The input columns specified in input_columns
+            must be present in input_data.
+        scaler_filepath (str): Filepath of scaler.
+        model_filepath (str): Filepath of model.
+        input_columns (list): List of columns to use as input to the model. All
+            input columns must be present in input_data.
+
+    Returns:
+        y (array): Predictions from machine learning model based on input_data.
+
+    """
 
     # Load model
     # model = models.load_model(model_filepath)
