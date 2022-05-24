@@ -134,6 +134,6 @@ def infer(input_data, scaler_filepath, model_filepath, input_columns):
     y = model.predict(input_data)
 
     # Print results
-    print(y)
+    print("Results: ", y)
 
     return y
