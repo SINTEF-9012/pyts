@@ -3,12 +3,16 @@
 """Receiving FitBit data in JSON format and infering Fatigue Assessment Score
 using machine learning model.
 
+Author:
+    Erik Johannes Husom
+
 Created:
     2022-05-07
 
 """
 from datetime import datetime
 import joblib
+import json
 
 import pandas as pd
 
@@ -18,18 +22,16 @@ class FitBitDataFrame:
 
         self.dfs = []
 
-    def read_profile(self, json_input):
+    def read_profile(self, data_dict):
 
-        json_input = json_input["user"]
+        self.age = datetime.now().year - int(data_dict["dateOfBirth"][0][:4])
+        self.gender = 0 if data_dict["gender"][0] == "FEMALE" else 1
+        self.weight = data_dict["weight"]
+        self.height = data_dict["height"]
 
-        self.age = datetime.now().year - int(json_input["dateOfBirth"][0][:4])
-        self.gender = 0 if json_input["gender"][0] == "FEMALE" else 1
-        self.weight = json_input["weight"]
-        self.height = json_input["height"]
+    def read_sleep(self, data_dict):
 
-    def read_sleep(self, json_input):
-
-        df = pd.read_json(json_input)
+        df = pd.read_json(data_dict)
         print(df)
 
         df["dateOfSleep"] = pd.to_datetime(df["dateOfSleep"])
@@ -37,9 +39,9 @@ class FitBitDataFrame:
 
         self.dfs.append(df)
 
-    def read_timeseries(self, name, json_input, sum_values=False):
+    def read_timeseries(self, name, data_dict, sum_values=False):
 
-        df = pd.read_json(json_input)
+        df = pd.DataFrame.from_dict(data_dict)
 
         # Change dateTime column to datetime type
         df["dateTime"] = pd.to_datetime(df["dateTime"])
@@ -78,7 +80,7 @@ class FitBitDataFrame:
 
         self.dfs.append(df_resampled)
 
-    def combine_data_and_profile(self, json_input):
+    def combine_data_and_profile(self, data_dict):
 
         self.df = self.dfs[0]
 
@@ -86,7 +88,7 @@ class FitBitDataFrame:
             self.df = self.df.join(df)
 
         # Add user profile information to each line of the data frame
-        self.read_profile(json_input)
+        self.read_profile(data_dict)
         self.df["age"] = self.age
         self.df["gender"] = self.gender
         self.df["weight"] = self.weight
@@ -98,21 +100,6 @@ class FitBitDataFrame:
 
 
 def infer(input_data, scaler_filepath, model_filepath, input_columns):
-    """Run inference using a machine learning model.
-
-    Args:
-        input_data (DataFrame): DataFrame containing the input data to use when
-            running inference. The input columns specified in input_columns
-            must be present in input_data.
-        scaler_filepath (str): Filepath of scaler.
-        model_filepath (str): Filepath of model.
-        input_columns (list): List of columns to use as input to the model. All
-            input columns must be present in input_data.
-
-    Returns:
-        y (array): Predictions from machine learning model based on input_data.
-
-    """
 
     # Load model
     # model = models.load_model(model_filepath)
@@ -137,3 +124,59 @@ def infer(input_data, scaler_filepath, model_filepath, input_columns):
     print(y)
 
     return y
+
+
+def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
+        input_columns):
+
+    input_json = json.loads(input_json_str)
+
+    output = []
+
+    for user_data in input_json:
+        print("=======")
+        user_id = user_data["userid"]
+        print(user_id)
+
+        f = FitBitDataFrame()
+
+        f.read_timeseries("calories", user_data["activities-calories"])
+        f.read_timeseries("distance", user_data["activities-distance"])
+        f.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
+        f.read_timeseries(
+            "minutesLightlyActive",
+            user_data["activities-minutesLightlyActive"],
+            sum_values=True,
+        )
+        f.read_timeseries(
+            "minutesFairlyActive", user_data["activities-minutesFairlyActive"], sum_values=True
+        )
+        f.read_timeseries(
+            "minutesVeryActive", user_data["activities-minutesVeryActive"], sum_values=True
+        )
+        f.read_timeseries(
+            "minutesSedentary", user_data["activities-minutesSedentary"], sum_values=True
+        )
+
+        # TODO: Adapt these functions to sample_input.json.
+        # These are not tested with the new format.
+        # f.read_sleep(get_sleep())
+        # f.read_timeseries("heart_rate", get_heart_rate_data("heart_rate"))
+
+        f.combine_data_and_profile(user_data["user"])
+
+        # Load name of input columns
+        input_columns = pd.read_csv("assets/input_columns.csv",
+                index_col=0, header=None).index.tolist()
+
+        y = infer(f.df, "assets/input_scaler.z", "assets/model.h5", input_columns)
+
+        # The latest FAS value is returned for each user.
+        output.append({
+            "userid": user_id,
+            "fas": str(y[-1])
+        })
+
+    output_json = json.dumps(output)
+
+    return output_json

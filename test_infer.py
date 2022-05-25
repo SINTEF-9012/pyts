@@ -82,33 +82,11 @@ def get_profile():
 
 if __name__ == "__main__":
 
-    f = FitBitDataFrame()
-
-    f.read_timeseries("calories", get_activity_data("calories"))
-    f.read_timeseries("distance", get_activity_data("distance"))
-    f.read_timeseries("steps", get_activity_data("steps"), sum_values=True)
-    f.read_timeseries(
-        "minutesLightlyActive",
-        get_activity_data("minutesLightlyActive"),
-        sum_values=True,
-    )
-    f.read_timeseries(
-        "minutesFairlyActive", get_activity_data("minutesFairlyActive"), sum_values=True
-    )
-    f.read_timeseries(
-        "minutesVeryActive", get_activity_data("minutesVeryActive"), sum_values=True
-    )
-    f.read_timeseries(
-        "minutesSedentary", get_activity_data("minutesSedentary"), sum_values=True
-    )
-
-    # f.read_sleep(get_sleep())
-    # f.read_timeseries("heart_rate", get_heart_rate_data("heart_rate"))
-
-    f.combine_data_and_profile(get_profile())
+    with open("sample_input.json", "r") as f:
+        input_json_str = f.read()
 
     # Load name of input columns
     input_columns = pd.read_csv("assets/input_columns.csv",
             index_col=0, header=None).index.tolist()
 
-    infer(f.df, "assets/input_scaler.z", "assets/model.h5", input_columns)
+    preprocess_and_infer(input_json_str, "assets/input_scaler.z", "assets/model.h5", input_columns)
