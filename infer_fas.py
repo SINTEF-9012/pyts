@@ -34,6 +34,9 @@ class FitBitDataFrame:
         df["dateOfSleep"] = pd.to_datetime(df["dateOfSleep"])
         df.set_index("dateOfSleep", inplace=True)
 
+        # Delete rows which does not contain main sleep
+        df = df[df.mainSleep == True]
+
         self.dfs.append(df)
 
     def read_timeseries(self, name, data_dict, sum_values=False):
