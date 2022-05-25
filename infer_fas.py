@@ -165,11 +165,7 @@ def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
 
         f.combine_data_and_profile(user_data["user"])
 
-        # Load name of input columns
-        input_columns = pd.read_csv("assets/input_columns.csv",
-                index_col=0, header=None).index.tolist()
-
-        y = infer(f.df, "assets/input_scaler.z", "assets/model.h5", input_columns)
+        y = infer(f.df, scaler_filepath, model_filepath, input_columns)
 
         # The latest FAS value is returned for each user.
         output.append({
