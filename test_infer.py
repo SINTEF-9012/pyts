@@ -76,7 +76,7 @@ def get_profile():
 
 if __name__ == "__main__":
 
-    with open("sample_input.json", "r") as f:
+    with open("data/sample_input.json", "r") as f:
         input_json_str = f.read()
 
     # Load name of input columns

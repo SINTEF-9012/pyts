@@ -21,7 +21,7 @@ print("Sample message: ", msg)
 # Publish text in defined topic
 producer.send(topicName, json.dumps(msg).encode('utf-8'))
 producer.flush()
-producer.close()
+# producer.close()
 
 # Print message
 print("Message Sent")
