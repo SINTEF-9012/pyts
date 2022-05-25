@@ -3,17 +3,14 @@
 """Receiving FitBit data in JSON format and infering Fatigue Assessment Score
 using machine learning model.
 
-Author:
-    Erik Johannes Husom
-
 Created:
     2022-05-07
 
 """
-from datetime import datetime
-import joblib
 import json
+from datetime import datetime
 
+import joblib
 import pandas as pd
 
 
@@ -126,8 +123,9 @@ def infer(input_data, scaler_filepath, model_filepath, input_columns):
     return y
 
 
-def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
-        input_columns):
+def preprocess_and_infer(
+    input_json_str, scaler_filepath, model_filepath, input_columns
+):
 
     input_json = json.loads(input_json_str)
 
@@ -149,13 +147,19 @@ def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
             sum_values=True,
         )
         f.read_timeseries(
-            "minutesFairlyActive", user_data["activities-minutesFairlyActive"], sum_values=True
+            "minutesFairlyActive",
+            user_data["activities-minutesFairlyActive"],
+            sum_values=True,
         )
         f.read_timeseries(
-            "minutesVeryActive", user_data["activities-minutesVeryActive"], sum_values=True
+            "minutesVeryActive",
+            user_data["activities-minutesVeryActive"],
+            sum_values=True,
         )
         f.read_timeseries(
-            "minutesSedentary", user_data["activities-minutesSedentary"], sum_values=True
+            "minutesSedentary",
+            user_data["activities-minutesSedentary"],
+            sum_values=True,
         )
 
         # TODO: Adapt these functions to sample_input.json.
@@ -168,10 +172,7 @@ def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
         y = infer(f.df, scaler_filepath, model_filepath, input_columns)
 
         # The latest FAS value is returned for each user.
-        output.append({
-            "userid": user_id,
-            "fas": str(y[-1])
-        })
+        output.append({"userid": user_id, "fas": str(y[-1])})
 
     output_json = json.dumps(output)
 

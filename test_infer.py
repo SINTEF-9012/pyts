@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 """Test inference.
 
-Author:
-    Erik Johannes Husom
-
 Created:
-    2022-05-19 torsdag 15:13:38 
+    2022-05-19
 
 """
 import json
@@ -26,10 +23,10 @@ def get_activity_data(variable, detail_level="1min"):
         "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd3BybyB3bnV0IHdzbGUgd3dlaSB3c29jIHdzZXQgd2FjdCB3bG9jIiwiZXhwIjoxNjUzNDMwMjk1LCJpYXQiOjE2NTM0MDE0OTV9.wPUywSYdwyzaWS_5MhKwIhhgWh8RfN8aNcH9RGkmGqg"
     }
 
-    json_response = requests.get(url, headers=headers).json()    
+    json_response = requests.get(url, headers=headers).json()
     json_response = json_response[f"activities-{variable}"]
     json_response = json.dumps(json_response)
-  
+
     return json_response
 
 
@@ -49,11 +46,10 @@ def get_heart_rate_data(detail_level="1min"):
 
     return json_response
 
+
 def get_sleep():
 
-    url = (
-        f"https://api.fitbit.com/1.2/user/-/sleep/date/2020-01-01/2020-01-05.json"
-    )
+    url = f"https://api.fitbit.com/1.2/user/-/sleep/date/2020-01-01/2020-01-05.json"
 
     headers = {
         "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd3BybyB3bnV0IHdzbGUgd3dlaSB3c29jIHdzZXQgd2FjdCB3bG9jIiwiZXhwIjoxNjUzNDMwMjk1LCJpYXQiOjE2NTM0MDE0OTV9.wPUywSYdwyzaWS_5MhKwIhhgWh8RfN8aNcH9RGkmGqg"
@@ -66,7 +62,6 @@ def get_sleep():
     return json_response
 
 
-
 def get_profile():
 
     url = f"https://api.fitbit.com/1/user/-/profile.json"
@@ -75,7 +70,7 @@ def get_profile():
         "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd3BybyB3bnV0IHdzbGUgd3dlaSB3c29jIHdzZXQgd2FjdCB3bG9jIiwiZXhwIjoxNjUzNDMwMjk1LCJpYXQiOjE2NTM0MDE0OTV9.wPUywSYdwyzaWS_5MhKwIhhgWh8RfN8aNcH9RGkmGqg"
     }
 
-    json_response = requests.get(url, headers=headers).json()    
+    json_response = requests.get(url, headers=headers).json()
     return json_response
 
 
@@ -85,9 +80,12 @@ if __name__ == "__main__":
         input_json_str = f.read()
 
     # Load name of input columns
-    input_columns = pd.read_csv("data/input_columns.csv",
-            index_col=0, header=None).index.tolist()
+    input_columns = pd.read_csv(
+        "data/input_columns.csv", index_col=0, header=None
+    ).index.tolist()
 
-    output_json = preprocess_and_infer(input_json_str, "model/input_scaler.z", "model/model.h5", input_columns)
+    output_json = preprocess_and_infer(
+        input_json_str, "model/input_scaler.z", "model/model.h5", input_columns
+    )
 
     print(output_json)
