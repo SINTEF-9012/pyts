@@ -88,4 +88,6 @@ if __name__ == "__main__":
     input_columns = pd.read_csv("data/input_columns.csv",
             index_col=0, header=None).index.tolist()
 
-    preprocess_and_infer(input_json_str, "model/input_scaler.z", "model/model.h5", input_columns)
+    output_json = preprocess_and_infer(input_json_str, "model/input_scaler.z", "model/model.h5", input_columns)
+
+    print(output_json)
