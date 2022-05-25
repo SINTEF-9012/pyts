@@ -117,9 +117,6 @@ def infer(input_data, scaler_filepath, model_filepath, input_columns):
     # Infer
     y = model.predict(input_data)
 
-    # Print results
-    print("Results: ", y)
-
     return y
 
 
@@ -132,9 +129,7 @@ def preprocess_and_infer(
     output = []
 
     for user_data in input_json:
-        print("=======")
         user_id = user_data["userid"]
-        print(user_id)
 
         f = FitBitDataFrame()
 
