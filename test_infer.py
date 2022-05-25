@@ -23,13 +23,13 @@ def get_activity_data(variable, detail_level="1min"):
     )
 
     headers = {
-        "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd251dCB3cHJvIHdzbGUgd3dlaSB3c29jIHdhY3Qgd3NldCB3bG9jIiwiZXhwIjoxNjUyOTgyMzYzLCJpYXQiOjE2NTI5NTM1NjN9.3m_eM5Mhh7Q9XBsI78WNKYRjNUTEWHljtEEsMfolU70"
+        "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd3BybyB3bnV0IHdzbGUgd3dlaSB3c29jIHdzZXQgd2FjdCB3bG9jIiwiZXhwIjoxNjUzNDMwMjk1LCJpYXQiOjE2NTM0MDE0OTV9.wPUywSYdwyzaWS_5MhKwIhhgWh8RfN8aNcH9RGkmGqg"
     }
 
-    json_response = requests.get(url, headers=headers).json()
+    json_response = requests.get(url, headers=headers).json()    
     json_response = json_response[f"activities-{variable}"]
     json_response = json.dumps(json_response)
-
+  
     return json_response
 
 
@@ -38,7 +38,7 @@ def get_heart_rate_data(detail_level="1min"):
     url = f"https://api.fitbit.com/1/user/-/activities/heart/date/2019-01-01/7d/{detail_level}.json"
 
     headers = {
-        "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd251dCB3cHJvIHdzbGUgd3dlaSB3c29jIHdhY3Qgd3NldCB3bG9jIiwiZXhwIjoxNjUyOTgyMzYzLCJpYXQiOjE2NTI5NTM1NjN9.3m_eM5Mhh7Q9XBsI78WNKYRjNUTEWHljtEEsMfolU70"
+        "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd3BybyB3bnV0IHdzbGUgd3dlaSB3c29jIHdzZXQgd2FjdCB3bG9jIiwiZXhwIjoxNjUzNDMwMjk1LCJpYXQiOjE2NTM0MDE0OTV9.wPUywSYdwyzaWS_5MhKwIhhgWh8RfN8aNcH9RGkmGqg"
     }
 
     json_response = requests.get(url, headers=headers).json()
@@ -56,7 +56,7 @@ def get_sleep():
     )
 
     headers = {
-        "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd251dCB3cHJvIHdzbGUgd3dlaSB3c29jIHdhY3Qgd3NldCB3bG9jIiwiZXhwIjoxNjUyOTgyMzYzLCJpYXQiOjE2NTI5NTM1NjN9.3m_eM5Mhh7Q9XBsI78WNKYRjNUTEWHljtEEsMfolU70"
+        "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd3BybyB3bnV0IHdzbGUgd3dlaSB3c29jIHdzZXQgd2FjdCB3bG9jIiwiZXhwIjoxNjUzNDMwMjk1LCJpYXQiOjE2NTM0MDE0OTV9.wPUywSYdwyzaWS_5MhKwIhhgWh8RfN8aNcH9RGkmGqg"
     }
 
     json_response = requests.get(url, headers=headers).json()
@@ -72,11 +72,10 @@ def get_profile():
     url = f"https://api.fitbit.com/1/user/-/profile.json"
 
     headers = {
-        "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd251dCB3cHJvIHdzbGUgd3dlaSB3c29jIHdhY3Qgd3NldCB3bG9jIiwiZXhwIjoxNjUyOTgyMzYzLCJpYXQiOjE2NTI5NTM1NjN9.3m_eM5Mhh7Q9XBsI78WNKYRjNUTEWHljtEEsMfolU70"
+        "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMzg1QzIiLCJzdWIiOiI5WDJKNVMiLCJpc3MiOiJGaXRiaXQiLCJ0eXAiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZXMiOiJ3aHIgd3BybyB3bnV0IHdzbGUgd3dlaSB3c29jIHdzZXQgd2FjdCB3bG9jIiwiZXhwIjoxNjUzNDMwMjk1LCJpYXQiOjE2NTM0MDE0OTV9.wPUywSYdwyzaWS_5MhKwIhhgWh8RfN8aNcH9RGkmGqg"
     }
 
-    json_response = requests.get(url, headers=headers).json()
-
+    json_response = requests.get(url, headers=headers).json()    
     return json_response
 
 
@@ -86,7 +85,7 @@ if __name__ == "__main__":
         input_json_str = f.read()
 
     # Load name of input columns
-    input_columns = pd.read_csv("assets/input_columns.csv",
+    input_columns = pd.read_csv("data/input_columns.csv",
             index_col=0, header=None).index.tolist()
 
-    preprocess_and_infer(input_json_str, "assets/input_scaler.z", "assets/model.h5", input_columns)
+    preprocess_and_infer(input_json_str, "model/input_scaler.z", "model/model.h5", input_columns)
