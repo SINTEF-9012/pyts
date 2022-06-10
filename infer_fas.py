@@ -10,7 +10,6 @@ Created:
 from datetime import datetime
 import joblib
 import json
-import yaml
 
 from tensorflow.keras import models
 import pandas as pd
@@ -107,13 +106,13 @@ class FitBitDataFrame:
             heart_rate_bpm_min = intraday["value"].min()
             heart_rate_bpm_mean = intraday["value"].mean()
 
-            df = df.append({
+            df = pd.concat([df, pd.DataFrame([{
                 "dateTime": date, 
                 "resting_heart_rate": resting_heart_rate,
                 "heart_rate_bpm_min": heart_rate_bpm_min, 
                 "heart_rate_bpm_max": heart_rate_bpm_max, 
                 "heart_rate_bpm_mean": heart_rate_bpm_mean
-            }, ignore_index=True)
+            }])])
 
         df["dateTime"] = pd.to_datetime(df["dateTime"])
         df.set_index("dateTime", inplace=True)
@@ -200,10 +199,10 @@ def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
         input_data = scaler.transform(input_data)
 
         # Select the latest data n data points, where n=window_size
-        window_size = yaml.safe_load(open("data/params.yaml"))["window_size"]
+        window_size = json.load(open("data/params.json"))["window_size"]
         input_data = input_data[-window_size:,:].reshape(1, -1)
 
-        deep_learning = yaml.safe_load(open("data/params.yaml"))["deep_learning"]
+        deep_learning = json.load(open("data/params.json"))["deep_learning"]
         y = infer(input_data, model_filepath, deep_learning=deep_learning)
 
         # The latest FAS value is returned for each user.
