@@ -7,10 +7,12 @@ Created:
     2022-05-07
 
 """
-import json
 from datetime import datetime
-
 import joblib
+import json
+import yaml
+
+from tensorflow.keras import models
 import pandas as pd
 
 
@@ -21,21 +23,26 @@ class FitBitDataFrame:
 
     def read_profile(self, data_dict):
 
-        self.age = datetime.now().year - int(data_dict["dateOfBirth"][0][:4])
+        self.age = datetime.now().year - int(data_dict["dateOfBirth"][:4])
         self.gender = 0 if data_dict["gender"][0] == "FEMALE" else 1
         self.weight = data_dict["weight"]
         self.height = data_dict["height"]
+        self.bmi = self.weight / ((self.height / 100) ** 2)
 
     def read_sleep(self, data_dict):
 
-        df = pd.read_json(data_dict)
-        print(df)
+        # df = pd.read_json(data_dict)
+        df = pd.DataFrame.from_dict(data_dict)
 
         df["dateOfSleep"] = pd.to_datetime(df["dateOfSleep"])
         df.set_index("dateOfSleep", inplace=True)
-
+        
         # Delete rows which does not contain main sleep
-        df = df[df.mainSleep == True]
+        df = df[df.isMainSleep == True]
+
+        levels = pd.json_normalize(df["levels"]).add_prefix("levels.")
+        levels.index = df.index
+        df = df.join(levels)
 
         self.dfs.append(df)
 
@@ -80,6 +87,38 @@ class FitBitDataFrame:
 
         self.dfs.append(df_resampled)
 
+
+    def read_heart_rate(self, data_dict):
+
+        df = pd.DataFrame(columns=["dateTime", "resting_heart_rate",
+            "heart_rate_bpm_min", "heart_rate_bpm_max", "heart_rate_bpm_mean"])
+
+        for obj in data_dict:
+
+            date = obj["activities-heart"][0]["dateTime"]
+            resting_heart_rate = obj["activities-heart"][0]["value"]["restingHeartRate"]
+
+            intraday_resampled = pd.DataFrame()
+            intraday = obj["activities-heart-intraday"]["dataset"]
+            intraday = pd.DataFrame.from_dict(intraday)
+            intraday.set_index("time", inplace=True)
+
+            heart_rate_bpm_max = intraday["value"].max()
+            heart_rate_bpm_min = intraday["value"].min()
+            heart_rate_bpm_mean = intraday["value"].mean()
+
+            df = df.append({
+                "dateTime": date, 
+                "resting_heart_rate": resting_heart_rate,
+                "heart_rate_bpm_min": heart_rate_bpm_min, 
+                "heart_rate_bpm_max": heart_rate_bpm_max, 
+                "heart_rate_bpm_mean": heart_rate_bpm_mean
+            }, ignore_index=True)
+
+        df["dateTime"] = pd.to_datetime(df["dateTime"])
+        df.set_index("dateTime", inplace=True)
+        self.dfs.append(df)
+
     def combine_data_and_profile(self, data_dict):
 
         self.df = self.dfs[0]
@@ -93,29 +132,60 @@ class FitBitDataFrame:
         self.df["gender"] = self.gender
         self.df["weight"] = self.weight
         self.df["height"] = self.height
+        self.df["bmi"] = self.bmi
 
         self.df = self.df.fillna(0)
 
         return self.df
 
+def split_X_sequences(sequences, window_size, overlap=0):
+    """Split data sequence into samples with matching input and targets.
 
-def infer(input_data, scaler_filepath, model_filepath, input_columns):
+    Args:
+        sequences (array): The matrix containing the sequences, with the
+            targets in the first columns.
+        window_size (int): Number of time steps to include in each sample, i.e.
+            how much history should be matched with a given target.
+        overlap (int): How many time steps to overlap for each sequence. If
+            overlap is greater than window_size, it will be set to
+            window_size-1, which is the largest overlap possible.  Default=0,
+            which means there will be no overlap.
+
+    Returns:
+        X (array): Sequences from input array.
+
+    """
+    X = list()
+
+    start_idx = 0
+
+    if overlap >= window_size:
+        overlap = window_size - 1
+
+    while start_idx + window_size <= len(sequences):
+
+        # find the end of this pattern
+        end_ix = start_idx + window_size
+
+        # Select all cols from sequences except target col, which leaves inputs
+        seq_x = sequences[start_idx:end_ix, :]
+
+        X.append(seq_x)
+
+        start_idx += window_size - overlap
+
+    X = np.array(X)
+
+    return X
+
+
+def infer(input_data, model_filepath, deep_learning=True):
 
     # Load model
-    # model = models.load_model(model_filepath)
-    model = joblib.load(model_filepath)
-
-    # Load scaler
-    scaler = joblib.load(scaler_filepath)
-
-    # Select variables/columns to use
-    input_data = input_data[input_columns]
-
-    # Convert to NumPy array
-    input_data = input_data.to_numpy()
-
-    # Scale input data
-    input_data = scaler.transform(input_data)
+    if deep_learning:
+        model = models.load_model(model_filepath)
+    else:
+        model = joblib.load(model_filepath)
 
     # Infer
     y = model.predict(input_data)
@@ -123,54 +193,64 @@ def infer(input_data, scaler_filepath, model_filepath, input_columns):
     return y
 
 
-def preprocess_and_infer(
-    input_json_str, scaler_filepath, model_filepath, input_columns
-):
+def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
+        input_columns):
 
     input_json = json.loads(input_json_str)
 
     output = []
 
     for user_data in input_json:
-        user_id = user_data["userid"]
 
         f = FitBitDataFrame()
+
 
         f.read_timeseries("calories", user_data["activities-calories"])
         f.read_timeseries("distance", user_data["activities-distance"])
         f.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
         f.read_timeseries(
-            "minutesLightlyActive",
+            "lightly_active_minutes",
             user_data["activities-minutesLightlyActive"],
             sum_values=True,
         )
         f.read_timeseries(
-            "minutesFairlyActive",
-            user_data["activities-minutesFairlyActive"],
-            sum_values=True,
+            "moderately_active_minutes", user_data["activities-minutesFairlyActive"], sum_values=True
         )
         f.read_timeseries(
-            "minutesVeryActive",
-            user_data["activities-minutesVeryActive"],
-            sum_values=True,
+            "very_active_minutes", user_data["activities-minutesVeryActive"], sum_values=True
         )
         f.read_timeseries(
-            "minutesSedentary",
-            user_data["activities-minutesSedentary"],
-            sum_values=True,
+            "sedentary_minutes", user_data["activities-minutesSedentary"], sum_values=True
         )
-
-        # TODO: Adapt these functions to sample_input.json.
-        # These are not tested with the new format.
-        # f.read_sleep(get_sleep())
-        # f.read_timeseries("heart_rate", get_heart_rate_data("heart_rate"))
+        f.read_heart_rate(user_data["heartrate"])
+        f.read_sleep(user_data["sleep"])
 
         f.combine_data_and_profile(user_data["user"])
 
-        y = infer(f.df, scaler_filepath, model_filepath, input_columns)
+        # Select variables/columns to use
+        input_data = f.df[input_columns]
+
+        # Convert to NumPy array
+        input_data = input_data.to_numpy()
+
+        # Load scaler
+        scaler = joblib.load(scaler_filepath)
+
+        # Scale input data
+        input_data = scaler.transform(input_data)
+
+        # Select the latest data n data points, where n=window_size
+        window_size = yaml.safe_load(open("data/params.yaml"))["window_size"]
+        input_data = input_data[-window_size:,:].reshape(1, -1)
+
+        deep_learning = yaml.safe_load(open("data/params.yaml"))["deep_learning"]
+        y = infer(input_data, model_filepath, deep_learning=deep_learning)
 
         # The latest FAS value is returned for each user.
-        output.append({"userid": user_id, "fas": str(y[-1])})
+        output.append({
+            "userid": user_id,
+            "fas": str(y[-1])
+        })
 
     output_json = json.dumps(output)
 
