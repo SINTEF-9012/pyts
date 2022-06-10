@@ -201,6 +201,7 @@ def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
     output = []
 
     for user_data in input_json:
+        user_id = user_data["userid"]
 
         f = FitBitDataFrame()
 
