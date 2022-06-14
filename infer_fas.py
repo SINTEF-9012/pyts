@@ -170,6 +170,18 @@ def infer(input_data, model_filepath, deep_learning=True):
 def preprocess_and_infer(
     input_json_str, scaler_filepath, model_filepath, input_columns
 ):
+    """Preprocess data and pass it to inference.
+
+    Args:
+        input_json_str (str): JSON string containing input data.
+        scaler_filepath (str): Filepath to scaler object.
+        model_filepath (str): Filepath to model.
+        input_columns (list): List of input columns.
+
+    Returns:
+        output_json (str): Results from inference as JSON string.
+
+    """
 
     input_json = json.loads(input_json_str)
 
