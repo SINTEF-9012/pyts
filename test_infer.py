@@ -79,13 +79,8 @@ if __name__ == "__main__":
     with open("data/sample_input.json", "r") as f:
         input_json_str = f.read()
 
-    # Load name of input columns
-    input_columns = pd.read_csv(
-        "data/input_columns.csv", index_col=0, header=None
-    ).index.tolist()
-
     output_json = preprocess_and_infer(
-        input_json_str, "model/input_scaler.z", "model/model.h5", input_columns
+        input_json_str, "model/input_scaler.z", "model/model.h5", "data/input_columns.csv"
     )
 
     print(output_json)

@@ -168,7 +168,7 @@ def infer(input_data, model_filepath, deep_learning=True):
 
 
 def preprocess_and_infer(
-    input_json_str, scaler_filepath, model_filepath, input_columns
+    input_json_str, scaler_filepath, model_filepath, input_columns_filepath
 ):
     """Preprocess data and pass it to inference.
 
@@ -176,7 +176,7 @@ def preprocess_and_infer(
         input_json_str (str): JSON string containing input data.
         scaler_filepath (str): Filepath to scaler object.
         model_filepath (str): Filepath to model.
-        input_columns (list): List of input columns.
+        input_columns_filepath (str): Filepath to list of input columns.
 
     Returns:
         output_json (str): Results from inference as JSON string.
@@ -221,6 +221,9 @@ def preprocess_and_infer(
         f.combine_data_and_profile(user_data["user"])
 
         # Select variables/columns to use
+        input_columns = pd.read_csv(
+            input_columns_filepath, index_col=0, header=None
+        ).index.tolist()
         input_data = f.df[input_columns]
 
         # Convert to NumPy array
