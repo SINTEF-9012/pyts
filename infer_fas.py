@@ -7,12 +7,12 @@ Created:
     2022-05-07
 
 """
-from datetime import datetime
-import joblib
 import json
+from datetime import datetime
 
-from tensorflow.keras import models
+import joblib
 import pandas as pd
+from tensorflow.keras import models
 
 
 class FitBitDataFrame:
@@ -35,7 +35,7 @@ class FitBitDataFrame:
 
         df["dateOfSleep"] = pd.to_datetime(df["dateOfSleep"])
         df.set_index("dateOfSleep", inplace=True)
-        
+
         # Delete rows which does not contain main sleep
         df = df[df.isMainSleep == True]
 
@@ -86,11 +86,17 @@ class FitBitDataFrame:
 
         self.dfs.append(df_resampled)
 
-
     def read_heart_rate(self, data_dict):
 
-        df = pd.DataFrame(columns=["dateTime", "resting_heart_rate",
-            "heart_rate_bpm_min", "heart_rate_bpm_max", "heart_rate_bpm_mean"])
+        df = pd.DataFrame(
+            columns=[
+                "dateTime",
+                "resting_heart_rate",
+                "heart_rate_bpm_min",
+                "heart_rate_bpm_max",
+                "heart_rate_bpm_mean",
+            ]
+        )
 
         for obj in data_dict:
 
@@ -106,13 +112,22 @@ class FitBitDataFrame:
             heart_rate_bpm_min = intraday["value"].min()
             heart_rate_bpm_mean = intraday["value"].mean()
 
-            df = pd.concat([df, pd.DataFrame([{
-                "dateTime": date, 
-                "resting_heart_rate": resting_heart_rate,
-                "heart_rate_bpm_min": heart_rate_bpm_min, 
-                "heart_rate_bpm_max": heart_rate_bpm_max, 
-                "heart_rate_bpm_mean": heart_rate_bpm_mean
-            }])])
+            df = pd.concat(
+                [
+                    df,
+                    pd.DataFrame(
+                        [
+                            {
+                                "dateTime": date,
+                                "resting_heart_rate": resting_heart_rate,
+                                "heart_rate_bpm_min": heart_rate_bpm_min,
+                                "heart_rate_bpm_max": heart_rate_bpm_max,
+                                "heart_rate_bpm_mean": heart_rate_bpm_mean,
+                            }
+                        ]
+                    ),
+                ]
+            )
 
         df["dateTime"] = pd.to_datetime(df["dateTime"])
         df.set_index("dateTime", inplace=True)
@@ -137,6 +152,7 @@ class FitBitDataFrame:
 
         return self.df
 
+
 def infer(input_data, model_filepath, deep_learning=True):
 
     # Load model
@@ -151,8 +167,9 @@ def infer(input_data, model_filepath, deep_learning=True):
     return y
 
 
-def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
-        input_columns):
+def preprocess_and_infer(
+    input_json_str, scaler_filepath, model_filepath, input_columns
+):
 
     input_json = json.loads(input_json_str)
 
@@ -163,7 +180,6 @@ def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
 
         f = FitBitDataFrame()
 
-
         f.read_timeseries("calories", user_data["activities-calories"])
         f.read_timeseries("distance", user_data["activities-distance"])
         f.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
@@ -173,13 +189,19 @@ def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
             sum_values=True,
         )
         f.read_timeseries(
-            "moderately_active_minutes", user_data["activities-minutesFairlyActive"], sum_values=True
+            "moderately_active_minutes",
+            user_data["activities-minutesFairlyActive"],
+            sum_values=True,
         )
         f.read_timeseries(
-            "very_active_minutes", user_data["activities-minutesVeryActive"], sum_values=True
+            "very_active_minutes",
+            user_data["activities-minutesVeryActive"],
+            sum_values=True,
         )
         f.read_timeseries(
-            "sedentary_minutes", user_data["activities-minutesSedentary"], sum_values=True
+            "sedentary_minutes",
+            user_data["activities-minutesSedentary"],
+            sum_values=True,
         )
         f.read_heart_rate(user_data["heartrate"])
         f.read_sleep(user_data["sleep"])
@@ -200,16 +222,13 @@ def preprocess_and_infer(input_json_str, scaler_filepath, model_filepath,
 
         # Select the latest data n data points, where n=window_size
         window_size = json.load(open("data/params.json"))["window_size"]
-        input_data = input_data[-window_size:,:].reshape(1, -1)
+        input_data = input_data[-window_size:, :].reshape(1, -1)
 
         deep_learning = json.load(open("data/params.json"))["deep_learning"]
         y = infer(input_data, model_filepath, deep_learning=deep_learning)
 
         # The latest FAS value is returned for each user.
-        output.append({
-            "userid": user_id,
-            "fas": str(y[-1])
-        })
+        output.append({"userid": user_id, "fas": str(y[-1])})
 
     output_json = json.dumps(output)
 
