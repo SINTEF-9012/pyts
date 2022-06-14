@@ -16,11 +16,43 @@ from tensorflow.keras import models
 
 
 class FitBitDataFrame:
+    """Producing a coherent data frame based on Fitbit data.
+
+    The resulting data frame will contain data collected using a Fitbit
+    wearable by one person.
+
+    Attributes:
+        dfs (list of DataFrames): List containing pandas DataFrames for each of
+            the different categories of data.
+        df (DataFrame): The resulting data frame after joining together the data
+            from all data frames in `dfs`.
+        age (int): Age of person.
+        gender (int): Gender of person.
+        weight (float): Weight of person.
+        height (float): Height of person.
+        bmi (float): Body Mass Index of person.
+
+    """
+
     def __init__(self):
 
         self.dfs = []
+        self.df = None
 
-    def read_profile(self, data_dict):
+        self.age = None
+        self.gender = None
+        self.weight = None
+        self.height = None
+        self.bmi = None
+
+
+    def _read_profile(self, data_dict):
+        """Read the profile information about the person.
+
+        Args:
+            data_dict (dict): Profile information from the Fitbit API.
+
+        """
 
         self.age = datetime.now().year - int(data_dict["dateOfBirth"][:4])
         self.gender = 0 if data_dict["gender"][0] == "FEMALE" else 1
@@ -29,6 +61,12 @@ class FitBitDataFrame:
         self.bmi = self.weight / ((self.height / 100) ** 2)
 
     def read_sleep(self, data_dict):
+        """Read sleep data.
+
+        Args:
+            data_dict (dict): Sleep information from the Fitbit API.
+
+        """
 
         # df = pd.read_json(data_dict)
         df = pd.DataFrame.from_dict(data_dict)
@@ -46,6 +84,16 @@ class FitBitDataFrame:
         self.dfs.append(df)
 
     def read_timeseries(self, name, data_dict, sum_values=False):
+        """Read time series data.
+
+        Args:
+            name (str): What name to give the variable.
+            data_dict (dict): Sleep information from the Fitbit API.
+            sum_values (bool): Whether to sum/aggregate values for each day. If
+                this is False, the max, min and average values will be computed
+                for each day instead.
+
+        """
 
         df = pd.DataFrame.from_dict(data_dict)
 
@@ -87,6 +135,12 @@ class FitBitDataFrame:
         self.dfs.append(df_resampled)
 
     def read_heart_rate(self, data_dict):
+        """Read heart rate data.
+
+        Args:
+            data_dict (dict): Sleep information from the Fitbit API.
+
+        """
 
         df = pd.DataFrame(
             columns=[
@@ -103,7 +157,6 @@ class FitBitDataFrame:
             date = obj["activities-heart"][0]["dateTime"]
             resting_heart_rate = obj["activities-heart"][0]["value"]["restingHeartRate"]
 
-            intraday_resampled = pd.DataFrame()
             intraday = obj["activities-heart-intraday"]["dataset"]
             intraday = pd.DataFrame.from_dict(intraday)
             intraday.set_index("time", inplace=True)
@@ -133,7 +186,16 @@ class FitBitDataFrame:
         df.set_index("dateTime", inplace=True)
         self.dfs.append(df)
 
-    def combine_data_and_profile(self, data_dict):
+    def combine_data_and_profile(self, profile_data_dict):
+        """Combine all data frames together with the profile information.
+
+        Args:
+            profile_data_dict (dict): Profile information.
+
+        Returns:
+            df (DataFrame): The final data frame containing all data.
+
+        """
 
         self.df = self.dfs[0]
 
@@ -141,7 +203,7 @@ class FitBitDataFrame:
             self.df = self.df.join(df)
 
         # Add user profile information to each line of the data frame
-        self.read_profile(data_dict)
+        self._read_profile(profile_data_dict)
         self.df["age"] = self.age
         self.df["gender"] = self.gender
         self.df["weight"] = self.weight
@@ -154,6 +216,18 @@ class FitBitDataFrame:
 
 
 def infer(input_data, model_filepath, deep_learning=True):
+    """Run inference on input data.
+
+    Args:
+        input_data (array): Input data/predictors.
+        model_filepath: Filepath to model.
+        deep_learning (bool): Whether the model is a deep learning model or
+            not.
+
+    Returns:
+        prediction (array): Predicted values from model.
+
+    """
 
     # Load model
     if deep_learning:
@@ -162,13 +236,17 @@ def infer(input_data, model_filepath, deep_learning=True):
         model = joblib.load(model_filepath)
 
     # Infer
-    y = model.predict(input_data)
+    prediction = model.predict(input_data)
 
-    return y
+    return prediction
 
 
 def preprocess_and_infer(
-    input_json_str, scaler_filepath, model_filepath, input_columns_filepath
+    input_json_str,
+    scaler_filepath,
+    model_filepath,
+    input_columns_filepath,
+    params_filepath,
 ):
     """Preprocess data and pass it to inference.
 
@@ -177,6 +255,7 @@ def preprocess_and_infer(
         scaler_filepath (str): Filepath to scaler object.
         model_filepath (str): Filepath to model.
         input_columns_filepath (str): Filepath to list of input columns.
+        params_filepath (str): Filepath to configuration paramters.
 
     Returns:
         output_json (str): Results from inference as JSON string.
@@ -190,41 +269,41 @@ def preprocess_and_infer(
     for user_data in input_json:
         user_id = user_data["userid"]
 
-        f = FitBitDataFrame()
+        fitbit_data = FitBitDataFrame()
 
-        f.read_timeseries("calories", user_data["activities-calories"])
-        f.read_timeseries("distance", user_data["activities-distance"])
-        f.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
-        f.read_timeseries(
+        fitbit_data.read_timeseries("calories", user_data["activities-calories"])
+        fitbit_data.read_timeseries("distance", user_data["activities-distance"])
+        fitbit_data.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
+        fitbit_data.read_timeseries(
             "lightly_active_minutes",
             user_data["activities-minutesLightlyActive"],
             sum_values=True,
         )
-        f.read_timeseries(
+        fitbit_data.read_timeseries(
             "moderately_active_minutes",
             user_data["activities-minutesFairlyActive"],
             sum_values=True,
         )
-        f.read_timeseries(
+        fitbit_data.read_timeseries(
             "very_active_minutes",
             user_data["activities-minutesVeryActive"],
             sum_values=True,
         )
-        f.read_timeseries(
+        fitbit_data.read_timeseries(
             "sedentary_minutes",
             user_data["activities-minutesSedentary"],
             sum_values=True,
         )
-        f.read_heart_rate(user_data["heartrate"])
-        f.read_sleep(user_data["sleep"])
+        fitbit_data.read_heart_rate(user_data["heartrate"])
+        fitbit_data.read_sleep(user_data["sleep"])
 
-        f.combine_data_and_profile(user_data["user"])
+        fitbit_data.combine_data_and_profile(user_data["user"])
 
         # Select variables/columns to use
         input_columns = pd.read_csv(
             input_columns_filepath, index_col=0, header=None
         ).index.tolist()
-        input_data = f.df[input_columns]
+        input_data = fitbit_data.df[input_columns]
 
         # Convert to NumPy array
         input_data = input_data.to_numpy()
@@ -235,11 +314,15 @@ def preprocess_and_infer(
         # Scale input data
         input_data = scaler.transform(input_data)
 
+        # Read configuration parameters
+        with open(params_filepath, "r") as infile:
+            params = json.load(infile)
+            window_size = params["window_size"]
+            deep_learning = params["deep_learning"]
+
         # Select the latest data n data points, where n=window_size
-        window_size = json.load(open("data/params.json"))["window_size"]
         input_data = input_data[-window_size:, :].reshape(1, -1)
 
-        deep_learning = json.load(open("data/params.json"))["deep_learning"]
         y = infer(input_data, model_filepath, deep_learning=deep_learning)
 
         # The latest FAS value is returned for each user.

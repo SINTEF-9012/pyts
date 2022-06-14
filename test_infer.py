@@ -80,7 +80,11 @@ if __name__ == "__main__":
         input_json_str = f.read()
 
     output_json = preprocess_and_infer(
-        input_json_str, "model/input_scaler.z", "model/model.h5", "data/input_columns.csv"
+        input_json_str,
+        "model/input_scaler.z",
+        "model/model.h5",
+        "data/input_columns.csv",
+        "data/params.json",
     )
 
     print(output_json)
