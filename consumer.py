@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Receiving JSON messages from a Kafka broker and passes them to fatigue detection inference. The estimated FAS-scores are then returned back to the Kafka broker.
+
+Created:
+    2022-05-07
+
+"""
+
 import sys
 import json
 import argparse
@@ -23,11 +32,6 @@ kafka_servers = [args.host]
 input_topic = args.input_topic
 output_topic = args.output_topic
 
-# Load name of input columns
-input_columns = pd.read_csv(
-        "data/input_columns.csv", index_col=0, header=None
-    ).index.tolist()
-
 producer = KafkaProducer(bootstrap_servers=kafka_servers)
 
 # To consume latest messages and auto-commit offsets
@@ -43,7 +47,7 @@ for message in consumer:
     #                                      message.offset, message.key,
     #                                      message.value))
     output_json = preprocess_and_infer(
-        message.value, "model/input_scaler.z", "model/model.h5", input_columns
+        message.value, "model/input_scaler.z", "model/model.h5", "data/input_columns.csv", "data/params.json"
     )
     print("Inference results: ", output_json)
     

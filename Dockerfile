@@ -1,7 +1,7 @@
-FROM python:3.7
-ADD requirements.txt /
+FROM python:3.7-slim
+COPY *.py /
+COPY data/input_columns.csv data/params.json data/
+COPY model model
+COPY requirements.txt /
 RUN python3.7 -m pip install -r requirements.txt
-ADD *.py /
-ADD data/input_columns.csv data/input_columns.csv
-ADD model model
 ENTRYPOINT [ "python", "./consumer.py" ]
