@@ -328,14 +328,7 @@ def preprocess_and_infer(
         # Select the latest data n data points, where n=window_size
         input_data = input_data[-window_size:, :].reshape(1, -1)
 
-        # import time
-        # start = time.perf_counter()
-        y = infer_tflite(input_data, "model/model.tflite")
-        # end = time.perf_counter()
-        # print(f"{user_id}: TFLite inference in {end - start:0.4f} seconds")
-        # print(y[-1])
-        # print("====================")
-
+        y = infer_tflite(input_data, model_filepath)
 
         # The latest FAS value is returned for each user.
         output.append({"userid": user_id, "fas": str(y[-1])})

@@ -6,7 +6,7 @@ Created:
     2022-05-19
 
 """
-from infer_fas import preprocess_and_infer
+from infer_fas_tflite import preprocess_and_infer
 
 if __name__ == "__main__":
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     output_json = preprocess_and_infer(
         input_json_str,
         "model/input_scaler.z",
-        "model/model.h5",
+        "model/model.tflite",
         "data/input_columns.csv",
         "data/params.json",
     )
