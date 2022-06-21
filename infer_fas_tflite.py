@@ -189,7 +189,6 @@ class FitBitDataFrame:
                 ]
             )
 
-
         df["dateTime"] = pd.to_datetime(df["dateTime"])
         df.set_index("dateTime", inplace=True)
         self.dfs.append(df)
