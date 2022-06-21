@@ -156,7 +156,6 @@ class FitBitDataFrame:
         for obj in data_dict:
 
             date = obj["activities-heart"][0]["dateTime"]
-            resting_heart_rate = obj["activities-heart"][0]["value"]["restingHeartRate"]
 
             intraday = obj["activities-heart-intraday"]["dataset"]
             intraday = pd.DataFrame.from_dict(intraday)
@@ -165,6 +164,13 @@ class FitBitDataFrame:
             heart_rate_bpm_max = intraday["value"].max()
             heart_rate_bpm_min = intraday["value"].min()
             heart_rate_bpm_mean = intraday["value"].mean()
+
+            # resting_heart_rate is sometimes missing from the API. If it is,
+            # use the heart_rate_bpm_min instead.
+            try:
+                resting_heart_rate = obj["activities-heart"][0]["value"]["restingHeartRate"]
+            except KeyError:
+                resting_heart_rate = heart_rate_bpm_min
 
             df = pd.concat(
                 [
@@ -182,6 +188,7 @@ class FitBitDataFrame:
                     ),
                 ]
             )
+
 
         df["dateTime"] = pd.to_datetime(df["dateTime"])
         df.set_index("dateTime", inplace=True)
