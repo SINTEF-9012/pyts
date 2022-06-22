@@ -8,12 +8,11 @@ Created:
 
 """
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import joblib
 import pandas as pd
 from tensorflow.keras import models
-
 
 class FitBitDataFrame:
     """Producing a coherent data frame based on Fitbit data.
@@ -120,7 +119,8 @@ class FitBitDataFrame:
         for column in new_value_columns:
             # Sum or mean values per day
             if sum_values:
-                df_resampled[column] = df.resample("D", on="dateTime")[column].sum()
+                # df_resampled[column] = df.resample("D", on="dateTime")[column].sum()
+                df_resampled[column] = df.resample("D", on="dateTime")[column].first()
             else:
                 df_resampled[column + "_max"] = df.resample("D", on="dateTime")[
                     column
@@ -216,10 +216,7 @@ class FitBitDataFrame:
         self.df["height"] = self.height
         self.df["bmi"] = self.bmi
 
-        self.df = self.df.fillna(0)
-
         return self.df
-
 
 def infer(input_data, model_filepath, deep_learning=True):
     """Run inference on input data.
@@ -267,6 +264,13 @@ def preprocess_and_infer(
 
     """
 
+    # Read configuration parameters
+    with open(params_filepath, "r") as infile:
+        params = json.load(infile)
+        window_size = params["window_size"]
+        max_data_staleness = params["max_data_staleness"]
+        deep_learning = params["deep_learning"]
+
     input_json = json.loads(input_json_str)
 
     output = []
@@ -310,6 +314,24 @@ def preprocess_and_infer(
         ).index.tolist()
         input_data = fitbit_data.df[input_columns]
 
+        input_data = input_data.dropna()
+
+        # Select the last n data points, where n=window_size
+        input_data = input_data.iloc[-window_size:,:]
+
+        # If input data has less than required number of days (window size) in
+        # the latest 10 days, return NaN.
+        date_threshold = datetime.now() - timedelta(days = max_data_staleness)
+        dates_in_input_data = input_data.index.to_pydatetime()
+
+        if (
+                len(input_data) < window_size or
+                dates_in_input_data.any() < date_threshold
+            ):
+
+            output.append({"userid": user_id, "fas": "nan"})
+            continue
+
         # Convert to NumPy array
         input_data = input_data.to_numpy()
 
@@ -318,12 +340,6 @@ def preprocess_and_infer(
 
         # Scale input data
         input_data = scaler.transform(input_data)
-
-        # Read configuration parameters
-        with open(params_filepath, "r") as infile:
-            params = json.load(infile)
-            window_size = params["window_size"]
-            deep_learning = params["deep_learning"]
 
         # Select the latest data n data points, where n=window_size
         input_data = input_data[-window_size:, :].reshape(1, -1)
