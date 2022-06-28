@@ -9,6 +9,8 @@ services:
   kafka:
     image: wurstmeister/kafka
     container_name: kafka
+    depends_on:
+      - zookeeper
     ports:
       - "9092:9092"
     expose:

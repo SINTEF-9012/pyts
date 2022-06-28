@@ -12,7 +12,7 @@ topicName = 'bhp_input'
 producer = KafkaProducer(bootstrap_servers = bootstrap_servers)
 
 # Opening JSON file
-f = open('data/sample_input_2.json')
+f = open('data/broken_input.json')
   
 # returns JSON object as a dictionary
 msg = json.load(f)

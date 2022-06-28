@@ -14,6 +14,9 @@ import joblib
 import pandas as pd
 from tensorflow.keras import models
 
+import logging
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
+
 class FitBitDataFrame:
     """Producing a coherent data frame based on Fitbit data.
 
@@ -158,17 +161,28 @@ class FitBitDataFrame:
 
             intraday = obj["activities-heart-intraday"]["dataset"]
             intraday = pd.DataFrame.from_dict(intraday)
-            intraday.set_index("time", inplace=True)
-
-            heart_rate_bpm_max = intraday["value"].max()
-            heart_rate_bpm_min = intraday["value"].min()
-            heart_rate_bpm_mean = intraday["value"].mean()
+            
+            # FIXME: properly handle missing values! 
+            # TODO: also do the same for the other potentially missing values
+            try:
+                # the heart rate intraday dataset may be empty for some reason. the code will break on the first occurance of "time", but I am
+                # enclosing all other lines into the "try" just to be on the safe side. 
+                intraday.set_index("time", inplace=True)
+                heart_rate_bpm_max = intraday["value"].max()
+                heart_rate_bpm_min = intraday["value"].min()
+                heart_rate_bpm_mean = intraday["value"].mean()
+            except KeyError as e:
+                logging.warning("Skipping current entry due to missing values. Error: " + repr(e));
+                # FIXME: what logic should it be - "break" or "continue"? How does it affect the "last 5 available days in the last 10 days" rule?               
+                # continue;
+                break;
 
             # resting_heart_rate is sometimes missing from the API. If it is,
             # use the heart_rate_bpm_min instead.
             try:
                 resting_heart_rate = obj["activities-heart"][0]["value"]["restingHeartRate"]
-            except KeyError:
+            except KeyError as e:
+                logging.warning("Resting heart rate is missing, replacing with the minimum value. Error: " + repr(e));
                 resting_heart_rate = heart_rate_bpm_min
 
             df = pd.concat(

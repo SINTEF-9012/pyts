@@ -10,7 +10,7 @@ from infer_fas import preprocess_and_infer
 
 if __name__ == "__main__":
 
-    with open("data/sample_input.json", "r", encoding="UTF-8") as f:
+    with open("data/broken_input.json", "r", encoding="UTF-8") as f:
         input_json_str = f.read()
 
     output_json = preprocess_and_infer(
