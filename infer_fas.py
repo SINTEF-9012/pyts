@@ -160,22 +160,12 @@ class FitBitDataFrame:
             date = obj["activities-heart"][0]["dateTime"]
 
             intraday = obj["activities-heart-intraday"]["dataset"]
-            intraday = pd.DataFrame.from_dict(intraday)
+            intraday = pd.DataFrame.from_dict(intraday)            
             
-            # FIXME: properly handle missing values! 
-            # TODO: also do the same for the other potentially missing values
-            try:
-                # the heart rate intraday dataset may be empty for some reason. the code will break on the first occurance of "time", but I am
-                # enclosing all other lines into the "try" just to be on the safe side. 
-                intraday.set_index("time", inplace=True)
-                heart_rate_bpm_max = intraday["value"].max()
-                heart_rate_bpm_min = intraday["value"].min()
-                heart_rate_bpm_mean = intraday["value"].mean()
-            except KeyError as e:
-                logging.warning("Skipping current entry due to missing values. Error: " + repr(e));
-                # FIXME: what logic should it be - "break" or "continue"? How does it affect the "last 5 available days in the last 10 days" rule?               
-                # continue;
-                break;
+            intraday.set_index("time", inplace=True)
+            heart_rate_bpm_max = intraday["value"].max()
+            heart_rate_bpm_min = intraday["value"].min()
+            heart_rate_bpm_mean = intraday["value"].mean()            
 
             # resting_heart_rate is sometimes missing from the API. If it is,
             # use the heart_rate_bpm_min instead.
@@ -257,6 +247,48 @@ def infer(input_data, model_filepath, deep_learning=True):
 
     return prediction
 
+# FIXME: addedd this function to have on big surrounding try-catch clause for all potentially empty fields
+def read_user_data(user_data):
+    """Extract all the required fields from input data.
+
+    Args:
+        user_data: Input data.        
+
+    Returns:
+        fitbit_data: Only contains relevant fields.
+
+    """
+
+    fitbit_data = FitBitDataFrame()
+
+    fitbit_data.read_timeseries("calories", user_data["activities-calories"])
+    fitbit_data.read_timeseries("distance", user_data["activities-distance"])
+    fitbit_data.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
+    fitbit_data.read_timeseries(
+        "lightly_active_minutes",
+        user_data["activities-minutesLightlyActive"],
+        sum_values=True,
+        )
+    fitbit_data.read_timeseries(
+        "moderately_active_minutes",
+        user_data["activities-minutesFairlyActive"],
+        sum_values=True,
+        )
+    fitbit_data.read_timeseries(
+        "very_active_minutes",
+        user_data["activities-minutesVeryActive"],
+        sum_values=True,
+        )
+    fitbit_data.read_timeseries(
+        "sedentary_minutes",
+        user_data["activities-minutesSedentary"],
+        sum_values=True,
+        )
+    fitbit_data.read_heart_rate(user_data["heartrate"])
+    fitbit_data.read_sleep(user_data["sleep"])
+
+    return fitbit_data
+
 def preprocess_and_infer(
     input_json_str,
     scaler_filepath,
@@ -294,31 +326,39 @@ def preprocess_and_infer(
 
         fitbit_data = FitBitDataFrame()
 
-        fitbit_data.read_timeseries("calories", user_data["activities-calories"])
-        fitbit_data.read_timeseries("distance", user_data["activities-distance"])
-        fitbit_data.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
-        fitbit_data.read_timeseries(
-            "lightly_active_minutes",
-            user_data["activities-minutesLightlyActive"],
-            sum_values=True,
-        )
-        fitbit_data.read_timeseries(
-            "moderately_active_minutes",
-            user_data["activities-minutesFairlyActive"],
-            sum_values=True,
-        )
-        fitbit_data.read_timeseries(
-            "very_active_minutes",
-            user_data["activities-minutesVeryActive"],
-            sum_values=True,
-        )
-        fitbit_data.read_timeseries(
-            "sedentary_minutes",
-            user_data["activities-minutesSedentary"],
-            sum_values=True,
-        )
-        fitbit_data.read_heart_rate(user_data["heartrate"])
-        fitbit_data.read_sleep(user_data["sleep"])
+        # FIXME: think of a better way of handling missing values! 
+        try:
+            fitbit_data = read_user_data(user_data)
+            """ fitbit_data.read_timeseries("calories", user_data["activities-calories"])
+            fitbit_data.read_timeseries("distance", user_data["activities-distance"])
+            fitbit_data.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
+            fitbit_data.read_timeseries(
+                "lightly_active_minutes",
+                user_data["activities-minutesLightlyActive"],
+                sum_values=True,
+            )
+            fitbit_data.read_timeseries(
+                "moderately_active_minutes",
+                user_data["activities-minutesFairlyActive"],
+                sum_values=True,
+            )
+            fitbit_data.read_timeseries(
+                "very_active_minutes",
+                user_data["activities-minutesVeryActive"],
+                sum_values=True,
+            )
+                fitbit_data.read_timeseries(
+                "sedentary_minutes",
+                user_data["activities-minutesSedentary"],
+                sum_values=True,
+            )
+            fitbit_data.read_heart_rate(user_data["heartrate"])
+            fitbit_data.read_sleep(user_data["sleep"]) """
+        except KeyError as e:
+            logging.warning("User ID: " + user_id +". Skipping current user due to missing values. Error: " + repr(e))
+            output.append({"userid": user_id, "fas": "nan"})
+            # FIXME: what logic should it be - "break" or "continue" or "pass"? We are completely skipping the user, so it does not really affect the "last 5 available days in the last 10 days" rule?
+            continue
 
         fitbit_data.combine_data_and_profile(user_data["user"])
 
