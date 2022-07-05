@@ -162,7 +162,16 @@ class FitBitDataFrame:
             intraday = obj["activities-heart-intraday"]["dataset"]
             intraday = pd.DataFrame.from_dict(intraday)            
             
+            # Check if data is present in intraday. If not, continue to next
+            # day.
+            if (
+                    "time" not in intraday.keys() and 
+                    "value" not in intraday.keys()
+                ):
+                continue
+
             intraday.set_index("time", inplace=True)
+
             heart_rate_bpm_max = intraday["value"].max()
             heart_rate_bpm_min = intraday["value"].min()
             heart_rate_bpm_mean = intraday["value"].mean()            
@@ -172,7 +181,7 @@ class FitBitDataFrame:
             try:
                 resting_heart_rate = obj["activities-heart"][0]["value"]["restingHeartRate"]
             except KeyError as e:
-                logging.warning("Resting heart rate is missing, replacing with the minimum value. Error: " + repr(e));
+                logging.warning(f"User ID: {user_id}. Resting heart rate is missing, replacing with the minimum value. Error: " + repr(e));
                 resting_heart_rate = heart_rate_bpm_min
 
             df = pd.concat(
@@ -247,7 +256,13 @@ def infer(input_data, model_filepath, deep_learning=True):
 
     return prediction
 
-# FIXME: addedd this function to have on big surrounding try-catch clause for all potentially empty fields
+
+def format_output(user_id, fas, timestamp):
+    """Return the output in expected format."""
+    
+    return {"userid": user_id, "fas": fas, "timestamp": timestamp}
+
+
 def read_user_data(user_data):
     """Extract all the required fields from input data.
 
@@ -329,35 +344,11 @@ def preprocess_and_infer(
         # FIXME: think of a better way of handling missing values! 
         try:
             fitbit_data = read_user_data(user_data)
-            """ fitbit_data.read_timeseries("calories", user_data["activities-calories"])
-            fitbit_data.read_timeseries("distance", user_data["activities-distance"])
-            fitbit_data.read_timeseries("steps", user_data["activities-steps"], sum_values=True)
-            fitbit_data.read_timeseries(
-                "lightly_active_minutes",
-                user_data["activities-minutesLightlyActive"],
-                sum_values=True,
-            )
-            fitbit_data.read_timeseries(
-                "moderately_active_minutes",
-                user_data["activities-minutesFairlyActive"],
-                sum_values=True,
-            )
-            fitbit_data.read_timeseries(
-                "very_active_minutes",
-                user_data["activities-minutesVeryActive"],
-                sum_values=True,
-            )
-                fitbit_data.read_timeseries(
-                "sedentary_minutes",
-                user_data["activities-minutesSedentary"],
-                sum_values=True,
-            )
-            fitbit_data.read_heart_rate(user_data["heartrate"])
-            fitbit_data.read_sleep(user_data["sleep"]) """
         except KeyError as e:
-            logging.warning("User ID: " + user_id +". Skipping current user due to missing values. Error: " + repr(e))
-            output.append({"userid": user_id, "fas": "nan"})
-            # FIXME: what logic should it be - "break" or "continue" or "pass"? We are completely skipping the user, so it does not really affect the "last 5 available days in the last 10 days" rule?
+            logging.warning(f"User ID: {user_id}. Skipping current user due to missing values. Error: " + repr(e))
+            output.append(format_output(user_id=user_id, fas="nan", timestamp="nan"))
+
+            # Continue to next user
             continue
 
         fitbit_data.combine_data_and_profile(user_data["user"])
@@ -374,16 +365,20 @@ def preprocess_and_infer(
         input_data = input_data.iloc[-window_size:,:]
 
         # If input data has less than required number of days (window size) in
-        # the latest 10 days, return NaN.
-        date_threshold = datetime.now() - timedelta(days = max_data_staleness)
+        # the latest 10 days (calculated from the latest date in the input
+        # data), return NaN.
         dates_in_input_data = input_data.index.to_pydatetime()
+        latest_date = max(dates_in_input_data)
+        date_threshold = latest_date - timedelta(days = max_data_staleness)
 
         if (
                 len(input_data) < window_size or
                 dates_in_input_data.any() < date_threshold
             ):
+            logging.warning(f"User ID: {user_id}. Skipping user due to not enough available data.")
+            output.append(format_output(user_id=user_id, fas="nan", timestamp="nan"))
 
-            output.append({"userid": user_id, "fas": "nan"})
+            # Continue to next user
             continue
 
         # Convert to NumPy array
@@ -401,7 +396,11 @@ def preprocess_and_infer(
         y = infer(input_data, model_filepath, deep_learning=deep_learning)
 
         # The latest FAS value is returned for each user.
-        output.append({"userid": user_id, "fas": str(y[-1])})
+        output.append(format_output(
+            user_id, 
+            fas=str(y[-1]),
+            timestamp=str(latest_date)
+        ))
 
     output_json = json.dumps(output)
 
