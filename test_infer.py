@@ -6,11 +6,18 @@ Created:
     2022-05-19
 
 """
+import sys
+
 from infer_fas import preprocess_and_infer
 
 if __name__ == "__main__":
 
-    with open("data/empty_fields.json", "r", encoding="UTF-8") as f:
+    if len(sys.argv) > 1:
+        input_json = sys.argv[1]
+    else:
+        input_json = "data/empty_fields.json"
+
+    with open(input_json, "r", encoding="UTF-8") as f:
         input_json_str = f.read()
 
     output_json = preprocess_and_infer(
