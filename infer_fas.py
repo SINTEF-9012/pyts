@@ -160,7 +160,7 @@ class FitBitDataFrame:
             date = obj["activities-heart"][0]["dateTime"]
 
             intraday = obj["activities-heart-intraday"]["dataset"]
-            intraday = pd.DataFrame.from_dict(intraday)            
+            intraday = pd.DataFrame.from_dict(intraday)
             
             # Check if data is present in intraday. If not, continue to next
             # day.
@@ -174,7 +174,7 @@ class FitBitDataFrame:
 
             heart_rate_bpm_max = intraday["value"].max()
             heart_rate_bpm_min = intraday["value"].min()
-            heart_rate_bpm_mean = intraday["value"].mean()            
+            heart_rate_bpm_mean = intraday["value"].mean()
 
             # resting_heart_rate is sometimes missing from the API. If it is,
             # use the heart_rate_bpm_min instead.
@@ -255,7 +255,6 @@ def infer(input_data, model_filepath, deep_learning=True):
     prediction = model.predict(input_data)
 
     return prediction
-
 
 def format_output(user_id, fas, timestamp):
     """Return the output in expected format."""
@@ -341,7 +340,6 @@ def preprocess_and_infer(
 
         fitbit_data = FitBitDataFrame()
 
-        # FIXME: think of a better way of handling missing values! 
         try:
             fitbit_data = read_user_data(user_data)
         except KeyError as e:
@@ -359,7 +357,11 @@ def preprocess_and_infer(
         ).index.tolist()
         input_data = fitbit_data.df[input_columns]
 
+        # Drop NaN values
         input_data = input_data.dropna()
+
+        # Sort input data on date
+        input_data = input_data.sort_index()
 
         # Select the last n data points, where n=window_size
         input_data = input_data.iloc[-window_size:,:]
