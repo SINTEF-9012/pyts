@@ -24,6 +24,7 @@ class FitBitDataFrame:
     wearable by one person.
 
     Attributes:
+        user_id (str): ID of user. Used for error messages.
         dfs (list of DataFrames): List containing pandas DataFrames for each of
             the different categories of data.
         df (DataFrame): The resulting data frame after joining together the data
@@ -36,7 +37,9 @@ class FitBitDataFrame:
 
     """
 
-    def __init__(self):
+    def __init__(self, user_id):
+
+        self.user_id = user_id
 
         self.dfs = []
         self.df = None
@@ -73,7 +76,11 @@ class FitBitDataFrame:
         # df = pd.read_json(data_dict)
         df = pd.DataFrame.from_dict(data_dict)
 
-        df["dateOfSleep"] = pd.to_datetime(df["dateOfSleep"])
+        try:
+            df["dateOfSleep"] = pd.to_datetime(df["dateOfSleep"])
+        except KeyError as e:
+            logging.warning(f"User ID: {self.user_id}. Error retreving data: sleep. Error: " + repr(e))
+
         df.set_index("dateOfSleep", inplace=True)
 
         # Delete rows which does not contain main sleep
@@ -100,7 +107,11 @@ class FitBitDataFrame:
         df = pd.DataFrame.from_dict(data_dict)
 
         # Change dateTime column to datetime type
-        df["dateTime"] = pd.to_datetime(df["dateTime"])
+        try:
+            df["dateTime"] = pd.to_datetime(df["dateTime"])
+        except KeyError as e:
+            logging.warning(f"User ID: {self.user_id}. Error retreving data: {name}. Error: " + repr(e))
+
 
         value_columns = [c for c in df.columns if c.startswith("value")]
 
@@ -273,7 +284,7 @@ def read_user_data(user_data):
 
     """
 
-    fitbit_data = FitBitDataFrame()
+    fitbit_data = FitBitDataFrame(user_id=user_data["userid"])
 
     fitbit_data.read_timeseries("calories", user_data["activities-calories"])
     fitbit_data.read_timeseries("distance", user_data["activities-distance"])
@@ -338,8 +349,6 @@ def preprocess_and_infer(
     for user_data in input_json:
         user_id = user_data["userid"]
 
-        fitbit_data = FitBitDataFrame()
-
         try:
             fitbit_data = read_user_data(user_data)
         except KeyError as e:
@@ -377,7 +386,7 @@ def preprocess_and_infer(
                 len(input_data) < window_size or
                 dates_in_input_data.any() < date_threshold
             ):
-            logging.warning(f"User ID: {user_id}. Skipping user due to not enough available data.")
+            logging.warning(f"User ID: {user_id}. Skipping user due to not enough available days of data.")
             output.append(format_output(user_id=user_id, fas="nan", timestamp="nan"))
 
             # Continue to next user
