@@ -192,7 +192,7 @@ class FitBitDataFrame:
             try:
                 resting_heart_rate = obj["activities-heart"][0]["value"]["restingHeartRate"]
             except KeyError as e:
-                logging.warning(f"User ID: {user_id}. Resting heart rate is missing, replacing with the minimum value. Error: " + repr(e));
+                logging.warning(f"User ID: {self.user_id}. Resting heart rate is missing, replacing with the minimum value. Error: " + repr(e));
                 resting_heart_rate = heart_rate_bpm_min
 
             df = pd.concat(
